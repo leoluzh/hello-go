@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependências
+        run: go mod download
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Testes
+        run: go test -v -coverprofile=coverage.out ./...
+
+      - name: Cobertura de testes
+        run: go tool cover -func=coverage.out
+
+      - name: Build do binário
+        run: CGO_ENABLED=0 go build -o bin/hello-go .
+
+      - name: Build da imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false   # apenas valida o build, sem publicar
+          tags: hello-go:ci
