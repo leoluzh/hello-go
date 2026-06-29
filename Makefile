@@ -2,10 +2,20 @@
 #  hello-go — Makefile
 # ============================================================
 
-APP_NAME   := hello-go
-IMAGE_NAME := $(APP_NAME)
-PORT       := 8080
-GO_FILES   := $(shell find . -name '*.go' -not -path './vendor/*')
+APP_NAME      := hello-go
+IMAGE_NAME    := $(APP_NAME)
+PORT          := 8080
+GO_FILES      := $(shell find . -name '*.go' -not -path './vendor/*')
+
+# ------------------------------------------------------------
+# Docker Hub
+# Uso: make dockerhub-push DOCKERHUB_USER=meuusuario
+#      make dockerhub-push DOCKERHUB_USER=meuusuario TAG=v1.2.0
+# ------------------------------------------------------------
+DOCKERHUB_USER    ?= $(shell echo $$DOCKERHUB_USER)
+DOCKERHUB_PASS    ?= $(shell echo $$DOCKERHUB_PASS)
+TAG               ?= latest
+DOCKERHUB_IMAGE   := $(DOCKERHUB_USER)/$(APP_NAME):$(TAG)
 
 # ------------------------------------------------------------
 # Auto-detecção de runtime de container (Docker ou Podman)
@@ -194,6 +204,105 @@ podman-pod-run: ## Executa o container dentro do pod
 podman-pod-stop: ## Para e remove o pod
 	podman pod stop $(APP_NAME)-pod 2>/dev/null || true
 	podman pod rm   $(APP_NAME)-pod 2>/dev/null || true
+
+# ------------------------------------------------------------
+# Docker Hub — agnóstico (usa RUNTIME detectado/definido)
+# ------------------------------------------------------------
+.PHONY: dockerhub-check-user
+dockerhub-check-user:
+	@[ -n "$(DOCKERHUB_USER)" ] || { echo "\033[31mErro: defina DOCKERHUB_USER (ex: make dockerhub-push DOCKERHUB_USER=meuusuario)\033[0m"; exit 1; }
+
+.PHONY: dockerhub-login
+dockerhub-login: dockerhub-check-user ## Login no Docker Hub [docker|podman]
+	@if [ -n "$(DOCKERHUB_PASS)" ]; then \
+		echo "$(DOCKERHUB_PASS)" | $(RUNTIME) login docker.io -u $(DOCKERHUB_USER) --password-stdin; \
+	else \
+		$(RUNTIME) login docker.io -u $(DOCKERHUB_USER); \
+	fi
+
+.PHONY: dockerhub-logout
+dockerhub-logout: ## Logout do Docker Hub [docker|podman]
+	$(RUNTIME) logout docker.io
+
+.PHONY: dockerhub-build
+dockerhub-build: dockerhub-check-user ## Build da imagem já com a tag do Docker Hub [docker|podman]
+	$(RUNTIME) build -t $(DOCKERHUB_IMAGE) .
+	@echo "Imagem criada: $(DOCKERHUB_IMAGE)"
+
+.PHONY: dockerhub-tag
+dockerhub-tag: dockerhub-check-user ## Tag da imagem local para o Docker Hub [docker|podman]
+	$(RUNTIME) tag $(IMAGE_NAME) $(DOCKERHUB_IMAGE)
+	@echo "Tag aplicada: $(IMAGE_NAME) → $(DOCKERHUB_IMAGE)"
+
+.PHONY: dockerhub-push
+dockerhub-push: dockerhub-check-user dockerhub-tag ## Tag + push para o Docker Hub [docker|podman]
+	$(RUNTIME) push $(DOCKERHUB_IMAGE)
+	@echo "Publicado: https://hub.docker.com/r/$(DOCKERHUB_USER)/$(APP_NAME)"
+
+.PHONY: dockerhub-build-push
+dockerhub-build-push: dockerhub-check-user ## Build + tag + push em um único comando [docker|podman]
+	$(MAKE) dockerhub-build DOCKERHUB_USER=$(DOCKERHUB_USER) TAG=$(TAG)
+	$(MAKE) dockerhub-push  DOCKERHUB_USER=$(DOCKERHUB_USER) TAG=$(TAG)
+
+.PHONY: dockerhub-release
+dockerhub-release: dockerhub-check-user ## Publica com TAG e também atualiza 'latest' [docker|podman]
+	@[ "$(TAG)" != "latest" ] || { echo "\033[31mErro: defina TAG (ex: make dockerhub-release TAG=v1.0.0 DOCKERHUB_USER=...)\033[0m"; exit 1; }
+	$(MAKE) dockerhub-build-push DOCKERHUB_USER=$(DOCKERHUB_USER) TAG=$(TAG)
+	$(RUNTIME) tag $(DOCKERHUB_IMAGE) $(DOCKERHUB_USER)/$(APP_NAME):latest
+	$(RUNTIME) push $(DOCKERHUB_USER)/$(APP_NAME):latest
+	@echo "Publicado com TAG=$(TAG) e latest"
+
+# ------------------------------------------------------------
+# Docker Hub — Docker explícito
+# ------------------------------------------------------------
+.PHONY: docker-dockerhub-login
+docker-dockerhub-login: dockerhub-check-user ## Login no Docker Hub com Docker
+	@if [ -n "$(DOCKERHUB_PASS)" ]; then \
+		echo "$(DOCKERHUB_PASS)" | docker login -u $(DOCKERHUB_USER) --password-stdin; \
+	else \
+		docker login -u $(DOCKERHUB_USER); \
+	fi
+
+.PHONY: docker-dockerhub-build-push
+docker-dockerhub-build-push: dockerhub-check-user ## Build + push para o Docker Hub com Docker
+	docker build -t $(DOCKERHUB_USER)/$(APP_NAME):$(TAG) .
+	docker push $(DOCKERHUB_USER)/$(APP_NAME):$(TAG)
+	@echo "Publicado: https://hub.docker.com/r/$(DOCKERHUB_USER)/$(APP_NAME)"
+
+.PHONY: docker-dockerhub-release
+docker-dockerhub-release: dockerhub-check-user ## Build + push com TAG + atualiza latest com Docker
+	@[ "$(TAG)" != "latest" ] || { echo "\033[31mErro: defina TAG (ex: make docker-dockerhub-release TAG=v1.0.0 DOCKERHUB_USER=...)\033[0m"; exit 1; }
+	docker build -t $(DOCKERHUB_USER)/$(APP_NAME):$(TAG) .
+	docker push $(DOCKERHUB_USER)/$(APP_NAME):$(TAG)
+	docker tag  $(DOCKERHUB_USER)/$(APP_NAME):$(TAG) $(DOCKERHUB_USER)/$(APP_NAME):latest
+	docker push $(DOCKERHUB_USER)/$(APP_NAME):latest
+	@echo "Publicado com TAG=$(TAG) e latest"
+
+# ------------------------------------------------------------
+# Docker Hub — Podman explícito
+# ------------------------------------------------------------
+.PHONY: podman-dockerhub-login
+podman-dockerhub-login: dockerhub-check-user ## Login no Docker Hub com Podman
+	@if [ -n "$(DOCKERHUB_PASS)" ]; then \
+		echo "$(DOCKERHUB_PASS)" | podman login docker.io -u $(DOCKERHUB_USER) --password-stdin; \
+	else \
+		podman login docker.io -u $(DOCKERHUB_USER); \
+	fi
+
+.PHONY: podman-dockerhub-build-push
+podman-dockerhub-build-push: dockerhub-check-user ## Build + push para o Docker Hub com Podman
+	podman build -t $(DOCKERHUB_USER)/$(APP_NAME):$(TAG) .
+	podman push docker.io/$(DOCKERHUB_USER)/$(APP_NAME):$(TAG)
+	@echo "Publicado: https://hub.docker.com/r/$(DOCKERHUB_USER)/$(APP_NAME)"
+
+.PHONY: podman-dockerhub-release
+podman-dockerhub-release: dockerhub-check-user ## Build + push com TAG + atualiza latest com Podman
+	@[ "$(TAG)" != "latest" ] || { echo "\033[31mErro: defina TAG (ex: make podman-dockerhub-release TAG=v1.0.0 DOCKERHUB_USER=...)\033[0m"; exit 1; }
+	podman build -t $(DOCKERHUB_USER)/$(APP_NAME):$(TAG) .
+	podman push docker.io/$(DOCKERHUB_USER)/$(APP_NAME):$(TAG)
+	podman tag  docker.io/$(DOCKERHUB_USER)/$(APP_NAME):$(TAG) docker.io/$(DOCKERHUB_USER)/$(APP_NAME):latest
+	podman push docker.io/$(DOCKERHUB_USER)/$(APP_NAME):latest
+	@echo "Publicado com TAG=$(TAG) e latest"
 
 # ------------------------------------------------------------
 # Compose (Docker Compose ou podman-compose — usa COMPOSE detectado)
