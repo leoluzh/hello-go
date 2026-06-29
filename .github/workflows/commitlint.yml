@@ -1,0 +1,25 @@
+name: Conventional Commits
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  commitlint:
+    name: Valida mensagens de commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # necessário para analisar histórico de commits
+
+      - name: Valida Conventional Commits
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.json

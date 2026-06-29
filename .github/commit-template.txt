@@ -1,0 +1,31 @@
+# Formato: <tipo>(<escopo>): <descrição curta>
+#
+# Tipos permitidos:
+#   feat     → nova funcionalidade              (bump MINOR: 1.x.0)
+#   fix      → correção de bug                  (bump PATCH: 1.0.x)
+#   perf     → melhoria de performance          (bump PATCH)
+#   refactor → refatoração sem mudança de comportamento
+#   docs     → apenas documentação
+#   chore    → manutenção, deps, configuração
+#   ci       → mudanças em CI/CD
+#   test     → adição ou correção de testes
+#   build    → mudanças no sistema de build
+#   revert   → reverte commit anterior
+#
+# BREAKING CHANGE → bump MAJOR (2.0.0)
+# Adicione "!" após o tipo: feat!: ou adicione no rodapé:
+#   BREAKING CHANGE: descrição da quebra de compatibilidade
+#
+# Exemplos:
+#   feat: adiciona endpoint /health
+#   fix(http): corrige timeout na leitura do body
+#   feat!: remove suporte ao Go 1.20
+#   docs: atualiza README com exemplos de uso
+#   chore: atualiza dependências
+#
+# Escopo (opcional): módulo, pacote ou área afetada
+#   ex: feat(auth): adiciona middleware de autenticação
+#
+# Rodapé (opcional):
+#   Closes #123
+#   BREAKING CHANGE: a flag --port foi removida, use PORT env var
