@@ -86,7 +86,7 @@ jobs:
       #    (usa o conteúdo do README.md)
       # --------------------------------------------------------
       - name: Atualiza descrição no Docker Hub
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
