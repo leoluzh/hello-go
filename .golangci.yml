@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck       # verifica erros não tratados
+    - gosimple       # simplificações de código
+    - govet          # go vet
+    - ineffassign    # atribuições ineficientes
+    - staticcheck    # análise estática avançada
+    - unused         # código não utilizado
+    - gofmt          # formatação
+    - goimports      # imports organizados
+    - misspell       # erros de ortografia em comentários
+    - bodyclose      # verifica fechamento de http.Response.Body
+    - noctx          # requisições HTTP sem context
+    - godot          # ponto final em comentários
+
+linters-settings:
+  gofmt:
+    simplify: true
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    - path: "_test.go"
+      linters:
+        - errcheck
