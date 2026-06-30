@@ -1,0 +1,97 @@
+name: Release Binaries
+
+on:
+  release:
+    types: [published]   # dispara quando o Release Please publica a release
+
+permissions:
+  contents: write        # necessário para fazer upload dos artefatos na release
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            suffix: ""
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            suffix: ""
+            archive: tar.gz
+          - goos: darwin
+            goarch: amd64
+            suffix: ""
+            archive: tar.gz
+          - goos: darwin
+            goarch: arm64
+            suffix: ""
+            archive: tar.gz
+          - goos: windows
+            goarch: amd64
+            suffix: ".exe"
+            archive: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # --------------------------------------------------------
+      # Extrai a versão da tag da release (ex: v1.2.3 → 1.2.3)
+      # --------------------------------------------------------
+      - name: Extrai versão
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # --------------------------------------------------------
+      # Compila o binário com ldflags de versão
+      # --------------------------------------------------------
+      - name: Build
+        env:
+          GOOS:   ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${{ github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          BINARY="hello-go${{ matrix.suffix }}"
+
+          go build \
+            -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildDate=${BUILD_DATE}" \
+            -o "${BINARY}" .
+
+      # --------------------------------------------------------
+      # Empacota como .tar.gz (Linux/macOS) ou .zip (Windows)
+      # --------------------------------------------------------
+      - name: Empacota (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          ASSET="hello-go_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
+          tar -czf "${ASSET}" hello-go README.md LICENSE CHANGELOG.md
+          echo "ASSET=${ASSET}" >> $GITHUB_ENV
+
+      - name: Empacota (zip)
+        if: matrix.archive == 'zip'
+        run: |
+          ASSET="hello-go_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
+          zip "${ASSET}" hello-go.exe README.md LICENSE CHANGELOG.md
+          echo "ASSET=${ASSET}" >> $GITHUB_ENV
+
+      # --------------------------------------------------------
+      # Faz upload do artefato para a GitHub Release
+      # --------------------------------------------------------
+      - name: Upload para a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}

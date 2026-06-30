@@ -1,6 +1,78 @@
 # hello-go
 
+[![CI](https://github.com/leoluzh/hello-go/actions/workflows/ci.yml/badge.svg)](https://github.com/leoluzh/hello-go/actions)
+[![Release Please](https://github.com/leoluzh/hello-go/actions/workflows/release-please.yml/badge.svg)](https://github.com/leoluzh/hello-go/actions)
+[![Publish GHCR](https://github.com/leoluzh/hello-go/actions/workflows/publish.yml/badge.svg)](https://github.com/leoluzh/hello-go/actions)
+[![Release Binaries](https://github.com/leoluzh/hello-go/actions/workflows/release-binaries.yml/badge.svg)](https://github.com/leoluzh/hello-go/actions)
+[![CodeQL](https://github.com/leoluzh/hello-go/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/leoluzh/hello-go/actions)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?logo=go)](go.mod)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker)](Dockerfile)
+
 Servidor HTTP "Hello World!" em Go, containerizado com Docker ou Podman e Docker Compose / podman-compose.
+
+## Downloads & Imagens
+
+### 📦 Binários — GitHub Releases
+
+Os binários compilados para cada plataforma estão disponíveis na página de [Releases](https://github.com/leoluzh/hello-go/releases):
+
+| Plataforma | Arquivo |
+|---|---|
+| Linux x86_64 | `hello-go_linux_amd64.tar.gz` |
+| Linux ARM64 | `hello-go_linux_arm64.tar.gz` |
+| macOS x86_64 | `hello-go_darwin_amd64.tar.gz` |
+| macOS Apple Silicon | `hello-go_darwin_arm64.tar.gz` |
+| Windows x86_64 | `hello-go_windows_amd64.zip` |
+
+> Acesse a [última release](https://github.com/leoluzh/hello-go/releases/latest) para baixar a versão mais recente.
+
+### 🐳 Imagem Docker — GitHub Container Registry (GHCR)
+
+```bash
+# última versão estável
+docker pull ghcr.io/leoluzh/hello-go:latest
+
+# versão específica
+docker pull ghcr.io/leoluzh/hello-go:1.0.0
+
+# branch main (builds de desenvolvimento)
+docker pull ghcr.io/leoluzh/hello-go:main
+```
+
+🔗 Pacote no GHCR: [ghcr.io/leoluzh/hello-go](https://github.com/leoluzh/hello-go/pkgs/container/hello-go)
+
+### 🐋 Imagem Docker — Docker Hub
+
+```bash
+# última versão estável
+docker pull leoluzh/hello-go:latest
+
+# versão específica
+docker pull leoluzh/hello-go:1.0.0
+```
+
+🔗 Repositório no Docker Hub: [hub.docker.com/r/leoluzh/hello-go](https://hub.docker.com/r/leoluzh/hello-go)
+
+### ▶️ Executar sem clonar o repositório
+
+```bash
+# Docker — GHCR
+docker run -p 8080:8080 ghcr.io/leoluzh/hello-go:latest
+
+# Docker — Docker Hub
+docker run -p 8080:8080 leoluzh/hello-go:latest
+
+# Podman — GHCR
+podman run -p 8080:8080 ghcr.io/leoluzh/hello-go:latest
+
+# Testar
+curl http://localhost:8080
+# Hello World!
+
+curl http://localhost:8080/version
+# version=1.0.0 commit=abc1234 built=2026-06-29T...
+```
 
 ## Pré-requisitos
 
@@ -128,6 +200,148 @@ Usam o runtime detectado automaticamente ou definido via `RUNTIME=`.
 | `make deps` | Baixa dependências do projeto |
 | `make info` | Exibe runtime detectado e informações do projeto |
 | `make help` | Lista todos os comandos disponíveis |
+
+## Conventional Commits & CHANGELOG
+
+Este projeto usa [Conventional Commits](https://www.conventionalcommits.org/pt-br/) para gerar o `CHANGELOG.md` e as versões automaticamente via Release Please.
+
+### Formato
+
+```
+<tipo>(<escopo opcional>): <descrição>
+
+<corpo opcional>
+
+<rodapé opcional>
+```
+
+### Tipos e impacto na versão
+
+| Tipo | Descrição | Versão |
+|---|---|---|
+| `feat` | nova funcionalidade | MINOR `1.x.0` |
+| `fix` | correção de bug | PATCH `1.0.x` |
+| `perf` | melhoria de performance | PATCH |
+| `refactor` | refatoração sem mudança de comportamento | — |
+| `docs` | apenas documentação | — |
+| `chore` | manutenção, deps, configuração | — |
+| `ci` | mudanças em CI/CD | — |
+| `test` | testes | — |
+| `feat!` ou `BREAKING CHANGE:` | quebra de compatibilidade | MAJOR `x.0.0` |
+
+### Exemplos
+
+```bash
+git commit -m "feat: adiciona endpoint /health"
+git commit -m "fix(http): corrige timeout na leitura do body"
+git commit -m "docs: atualiza README com exemplos de uso"
+git commit -m "feat!: remove suporte ao Go 1.20"
+
+# Com corpo e rodapé
+git commit -m "feat(auth): adiciona middleware JWT
+
+Implementa validação de token JWT no handler principal.
+
+Closes #42"
+```
+
+### Configurar template de commit localmente
+
+```bash
+git config commit.template .github/commit-template.txt
+```
+
+### Fluxo automático
+
+```
+commits na main (feat/fix/...)
+    → Release Please analisa os commits
+        → abre PR com CHANGELOG.md atualizado + bump de versão
+            → merge do PR
+                → cria tag v1.x.x + GitHub Release
+                    → publica imagem no GHCR e Docker Hub
+```
+
+## GitHub Actions & GHCR
+
+### Workflows disponíveis
+
+| Arquivo | Trigger | Descrição |
+|---|---|---|
+| `ci.yml` | push/PR em `main` e `feature/**` | Lint, testes, build do binário e validação da imagem |
+| `publish.yml` | push em `main` ou tag `v*.*.*` | Publica imagem no **GHCR** (ghcr.io) |
+| `publish-dockerhub.yml` | tag `v*.*.*` ou `workflow_dispatch` | Publica imagem no **Docker Hub** |
+
+### Secrets necessários no repositório
+
+Acesse **Settings → Secrets and variables → Actions** e adicione:
+
+| Secret | Descrição |
+|---|---|
+| `DOCKERHUB_USERNAME` | Usuário do Docker Hub |
+| `DOCKERHUB_TOKEN` | Access Token do Docker Hub |
+
+> O `GITHUB_TOKEN` para o GHCR é gerado automaticamente pelo Actions — não precisa configurar.
+
+### Tags geradas automaticamente
+
+**GHCR (`publish.yml`):**
+```
+ghcr.io/usuario/hello-go:main          # push na branch main
+ghcr.io/usuario/hello-go:1.2.3         # tag v1.2.3
+ghcr.io/usuario/hello-go:1.2           # major.minor
+ghcr.io/usuario/hello-go:latest        # junto com semver tag
+ghcr.io/usuario/hello-go:sha-abc1234   # SHA do commit
+ghcr.io/usuario/hello-go:pr-42         # pull request
+```
+
+**Docker Hub (`publish-dockerhub.yml`):**
+```
+usuario/hello-go:1.2.3    # tag v1.2.3
+usuario/hello-go:1.2      # major.minor
+usuario/hello-go:latest   # junto com semver tag
+```
+
+### Fluxo de release
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+# → dispara publish.yml (GHCR) e publish-dockerhub.yml (Docker Hub) automaticamente
+```
+
+### Publicar manualmente via Makefile
+
+```bash
+# GHCR
+make ghcr-release GITHUB_USER=meuusuario GITHUB_TOKEN=ghp_xxx TAG=v1.0.0
+
+# Docker Hub
+make dockerhub-release DOCKERHUB_USER=meuusuario TAG=v1.0.0
+```
+
+### Comandos GHCR — agnósticos
+
+| Comando | Descrição |
+|---|---|
+| `make ghcr-login` | Login no GHCR `[docker\|podman]` |
+| `make ghcr-logout` | Logout do GHCR `[docker\|podman]` |
+| `make ghcr-build` | Build com tag `ghcr.io/usuario/app:tag` `[docker\|podman]` |
+| `make ghcr-tag` | Tag da imagem local para o GHCR `[docker\|podman]` |
+| `make ghcr-push` | Tag + push para o GHCR `[docker\|podman]` |
+| `make ghcr-build-push` | Build + push em um único comando `[docker\|podman]` |
+| `make ghcr-release` | Build + push com `TAG` + atualiza `latest` `[docker\|podman]` |
+
+### Comandos GHCR — Docker e Podman explícitos
+
+| Comando | Descrição |
+|---|---|
+| `make docker-ghcr-login` | Login no GHCR com Docker |
+| `make docker-ghcr-build-push` | Build + push com Docker |
+| `make docker-ghcr-release` | Build + push com `TAG` + `latest` com Docker |
+| `make podman-ghcr-login` | Login no GHCR com Podman |
+| `make podman-ghcr-build-push` | Build + push com Podman |
+| `make podman-ghcr-release` | Build + push com `TAG` + `latest` com Podman |
 
 ## Publicar no Docker Hub
 
