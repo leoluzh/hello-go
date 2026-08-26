@@ -92,6 +92,6 @@ jobs:
       # Faz upload do artefato para a GitHub Release
       # --------------------------------------------------------
       - name: Upload para a Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ env.ASSET }}
