@@ -71,7 +71,7 @@ jobs:
       # 6. Build + Push
       # --------------------------------------------------------
       - name: Build e Push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
