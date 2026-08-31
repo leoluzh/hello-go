@@ -28,7 +28,7 @@ jobs:
       # 1. Checkout
       # --------------------------------------------------------
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # --------------------------------------------------------
       # 2. Configura QEMU (multi-arch: linux/amd64 + linux/arm64)
