@@ -41,7 +41,7 @@ jobs:
         run: CGO_ENABLED=0 go build -o bin/hello-go .
 
       - name: Build da imagem Docker
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: false   # apenas valida o build, sem publicar
